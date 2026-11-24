@@ -3,9 +3,10 @@ use core::ptr::null_mut;
 
 use linked_list_allocator::LockedHeap;
 use x86_64::{
-    VirtAddr, structures::paging::{
-        FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB, mapper::MapToError
-    }
+    VirtAddr,
+    structures::paging::{
+        FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB, mapper::MapToError,
+    },
 };
 
 pub mod bump;
@@ -22,7 +23,7 @@ pub struct Locked<A> {
 
 impl<A> Locked<A> {
     pub const fn new(inner: A) -> Self {
-        Locked { 
+        Locked {
             inner: spin::Mutex::new(inner),
         }
     }
@@ -51,11 +52,15 @@ pub fn init_heap(
 
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
 
-        unsafe { mapper.map_to(page, frame, flags, frame_allocator)?.flush(); }
+        unsafe {
+            mapper.map_to(page, frame, flags, frame_allocator)?.flush();
+        }
     }
 
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE as usize);
+        ALLOCATOR
+            .lock()
+            .init(HEAP_START as usize, HEAP_SIZE as usize);
     }
 
     Ok(())
@@ -66,7 +71,7 @@ pub struct DummyAllocator;
 unsafe impl GlobalAlloc for DummyAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
         null_mut()
-    }   
+    }
 
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {
         panic!("Should never called.")
