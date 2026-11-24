@@ -8,38 +8,25 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 
-use ada_os::memory::{self, BootInfoFrameAllocator, init, translate_addr};
 use ada_os::allocator;
+use ada_os::memory::{self, BootInfoFrameAllocator, init, translate_addr};
 use ada_os::println;
 use alloc::vec::Vec;
-use x86_64::VirtAddr;
-use x86_64::structures::paging::{Translate, Page};
-use core::panic::PanicInfo;
 use bootloader::{BootInfo, entry_point};
+use core::panic::PanicInfo;
+use x86_64::VirtAddr;
+use x86_64::structures::paging::{Page, Translate};
 
 entry_point!(kernel_main);
 
-const BANNER: &str = r"
-     _    ____    _       ___  ____  
-    / \  |  _ \  / \     / _ \/ ___| 
-   / _ \ | | | |/ _ \   | | | \___ \ 
-  / ___ \| |_| / ___ \  | |_| |___) |
- /_/   \_\____/_/   \_\  \___/|____/ 
-";
-
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    println!("{}", BANNER);
-
     ada_os::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { init(phys_mem_offset) };
-    let mut frame_allocator = unsafe { 
-        BootInfoFrameAllocator::init(&boot_info.memory_map) 
-    };
+    let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
 
-    allocator::init_heap(&mut mapper, &mut frame_allocator)
-        .expect("Heap initialization failed");
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("Heap initialization failed");
 
     let x = Box::new(42);
     println!("heap value at {:p}", x);
@@ -65,7 +52,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let my_fn_ptr = translate_addr as *const () as u64;
     let adresses = [
         0xb8000,
-        stack_ptr,  
+        stack_ptr,
         my_fn_ptr,
         boot_info.physical_memory_offset,
     ];
@@ -75,7 +62,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         let phys = mapper.translate_addr(virt);
         println!("{:?} -> {:?} ", virt, phys);
     }
-    
+
     #[cfg(test)]
     test_main();
 
