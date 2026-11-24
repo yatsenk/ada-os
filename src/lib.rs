@@ -12,12 +12,12 @@ use core::panic::PanicInfo;
 #[cfg(test)]
 use bootloader::{BootInfo, entry_point};
 
+pub mod allocator;
+pub mod gdt;
 pub mod interrupts;
+pub mod memory;
 pub mod serial;
 pub mod vga_buffer;
-pub mod gdt;
-pub mod memory;
-pub mod allocator;
 
 #[cfg(test)]
 entry_point!(test_kernel_main);
@@ -31,7 +31,9 @@ pub fn hlt_loop() -> ! {
 pub fn init() {
     gdt::init();
     interrupts::init_idt();
-    unsafe { interrupts::PICS.lock().initialize(); }
+    unsafe {
+        interrupts::PICS.lock().initialize();
+    }
     x86_64::instructions::interrupts::enable();
 }
 
@@ -62,7 +64,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[FAILED]\n");
     serial_println!("ERROR: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    hlt_loop(); 
+    hlt_loop();
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,16 +87,11 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();
     test_main();
-    hlt_loop();    
+    hlt_loop();
 }
 
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     test_panic_handler(info)
-}
-
-#[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
 }
